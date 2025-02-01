@@ -27,8 +27,16 @@ export default function Lobby() {
     () => localStorage.getItem("playerName") || "Anonymous"
   );
   const [isLeaving, setIsLeaving] = useState(false);
+  const [playerId] = useState(
+    () =>
+      localStorage.getItem("playerId") ||
+      Math.random().toString(36).substring(2, 8).toUpperCase()
+  );
 
   useEffect(() => {
+    // Store the playerId for future use
+    localStorage.setItem("playerId", playerId);
+
     // Join or create game
     const joinGame = async () => {
       try {
@@ -38,7 +46,7 @@ export default function Lobby() {
           body: JSON.stringify({
             code: gameCode,
             player: {
-              id: playerName,
+              id: playerId, // Use consistent playerId
               name: playerName,
             },
           }),
@@ -72,12 +80,12 @@ export default function Lobby() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             code: gameCode,
-            playerId: playerName,
+            playerId: playerId, // Use consistent playerId
           }),
         });
       }
     };
-  }, [gameCode, playerName, router, isLeaving]);
+  }, [gameCode, playerName, router, isLeaving, playerId]);
 
   // Search Wikipedia as user types
   useEffect(() => {
@@ -151,7 +159,7 @@ export default function Lobby() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code: gameCode,
-          playerId: playerName,
+          playerId: playerId, // Use consistent playerId
         }),
       });
       router.push("/");
