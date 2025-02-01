@@ -41,6 +41,19 @@ export default function Game() {
     }
   }, [currentArticle]);
 
+  useEffect(() => {
+    // Load Wikipedia's CSS
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href =
+      "https://en.wikipedia.org/w/load.php?modules=mediawiki.legacy.commonPrint,shared|mediawiki.skinning.elements|mediawiki.skinning.content|mediawiki.skinning.interface|skins.vector.styles|site|mediawiki.skinning.content.parsoid|ext.cite.style|ext.kartographer.style&only=styles&skin=vector";
+    document.head.appendChild(link);
+
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   const handleLinkClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (
@@ -92,10 +105,10 @@ export default function Game() {
         </div>
 
         {/* Wikipedia Article */}
-        <div className="md:col-span-3 bg-white p-4 rounded-lg shadow">
-          <h1 className="text-2xl font-bold mb-4">{content?.title}</h1>
+        <div className="md:col-span-3 bg-white shadow p-4">
           <div
-            className="prose max-w-none"
+            id="mw-content-text"
+            className="mw-body mw-body-content"
             onClick={handleLinkClick}
             dangerouslySetInnerHTML={{ __html: content?.text["*"] || "" }}
           />
