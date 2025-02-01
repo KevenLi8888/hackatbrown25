@@ -25,7 +25,6 @@ export default function Game() {
   const [content, setContent] = useState<WikipediaContent | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // We'll keep a ref to the container so we can easily query its <a> elements
   const articleContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,21 +44,8 @@ export default function Game() {
     }
   }, [currentArticle]);
 
+  // Load Wikipedia's CSS once
   useEffect(() => {
-    // Load Wikipedia's CSS
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href =
-      "https://en.wikipedia.org/w/load.php?modules=mediawiki.legacy.commonPrint,shared|mediawiki.skinning.elements|mediawiki.skinning.content|mediawiki.skinning.interface|skins.vector.styles|site|mediawiki.skinning.content.parsoid|ext.cite.style|ext.kartographer.style&only=styles&skin=vector";
-    document.head.appendChild(link);
-
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-
-  useEffect(() => {
-    // Load Wikipedia's CSS
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href =
@@ -91,29 +77,19 @@ export default function Game() {
     }
   };
 
-  // 1) On Hint: gather the first 10 link titles in the article, call /api/hint, color them
   const handleHintClick = async () => {
     if (!articleContainerRef.current) return;
 
-    // Get all <a> elements that start with /wiki/
     const links = Array.from(
       articleContainerRef.current.querySelectorAll("a[href^='/wiki/']")
     ) as HTMLAnchorElement[];
-
     if (links.length === 0) return;
 
-    // 2) We only want the first 10 for the hint
     const firstTenLinks = links.slice(0, 5);
-
-    // The link "title" we send to the embeddings API can be:
-    // - the link textContent
-    // - or the last part of its href. 
-    // We'll use the "last part of href" for consistency with Wikipedia article titles.
     const linkTitles = firstTenLinks.map((link) =>
       decodeURIComponent(link.getAttribute("href")!.split("/wiki/")[1])
     );
 
-    // Call our /api/hint route
     try {
       const response = await fetch("/api/game/hint", {
         method: "POST",
@@ -128,24 +104,15 @@ export default function Game() {
       }
 
       const data = await response.json();
-      const { similarities } = data; // array of { link, similarity }
+      const { similarities } = data;
 
-      // 3) For each link in 'firstTenLinks', find its similarity & color it
       similarities.forEach(({ link, similarity }: any) => {
-        // find the actual <a> DOM element
-        // (We can rely on the index, or do a find by href. 
-        //  We'll do a simple find by matching the last part of the href.)
         const matchingLink = firstTenLinks.find((l) =>
           l
             .getAttribute("href")
             ?.endsWith(encodeURIComponent(link))
         );
         if (matchingLink) {
-          // Example coloring logic:
-          // High similarity => green
-          // Medium similarity => orange
-          // Low similarity => red
-
           let color = "red";
           if (similarity > 0.75) color = "green";
           else if (similarity > 0.5) color = "orange";
@@ -188,8 +155,6 @@ export default function Game() {
               <span className="font-semibold">Current:</span> {currentArticle}
             </p>
           </div>
-
-          {/* The Hint button */}
           <div className="mt-4">
             <button
               onClick={handleHintClick}
@@ -201,10 +166,11 @@ export default function Game() {
         </div>
 
         {/* Wikipedia Article */}
-        <div className="md:col-span-3 bg-white shadow p-4">
+        <div className="md:col-span-3 bg-white shadow p-4 rounded-lg">
           <div
+            id="mw-content-text"
             ref={articleContainerRef}
-            className="prose max-w-none"
+            className="mw-body mw-body-content prose max-w-none"
             onClick={handleLinkClick}
             dangerouslySetInnerHTML={{ __html: content?.text["*"] || "" }}
           />
