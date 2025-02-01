@@ -4,14 +4,13 @@ import { useRouter } from "next/navigation";
 
 export default function JoinGame() {
   const [gameCode, setGameCode] = useState("");
-  const [playerName, setPlayerName] = useState("");
   const router = useRouter();
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Add API call to join game
-    
-    router.push(`/game?code=${gameCode}`);
+
+    router.push(`/lobby?code=${gameCode}`);
   };
 
   return (
@@ -36,21 +35,6 @@ export default function JoinGame() {
                 placeholder="Game Code"
                 value={gameCode}
                 onChange={(e) => setGameCode(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="player-name" className="sr-only">
-                Your Name
-              </label>
-              <input
-                id="player-name"
-                name="name"
-                type="text"
-                required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Your Name"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
               />
             </div>
           </div>
