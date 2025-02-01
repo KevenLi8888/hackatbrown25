@@ -12,6 +12,9 @@ interface WikipediaContent {
 export default function Game() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [playerName] = useState(
+    () => localStorage.getItem("playerName") || "Anonymous"
+  );
   const [currentArticle, setCurrentArticle] = useState(
     searchParams.get("start") || ""
   );
@@ -73,6 +76,9 @@ export default function Game() {
         <div className="md:col-span-1 bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-bold mb-4">Game Info</h2>
           <div className="space-y-2">
+            <p>
+              <span className="font-semibold">Player:</span> {playerName}
+            </p>
             <p>
               <span className="font-semibold">Target:</span> {targetArticle}
             </p>
