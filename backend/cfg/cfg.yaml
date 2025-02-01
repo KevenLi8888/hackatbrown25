@@ -1,0 +1,5 @@
+server:
+  env: dev
+  port: 12123
+logger:
+  level: debug
