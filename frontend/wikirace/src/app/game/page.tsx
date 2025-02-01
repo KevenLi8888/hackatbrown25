@@ -1,44 +1,69 @@
-'use client'
-import { useState, useEffect } from 'react'
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getWikipediaArticle } from "@/utils/wikipedia";
 
-interface Player {
-  name: string
-  currentArticle: string
-  clicks: number
+interface WikipediaContent {
+  title: string;
+  text: { "*": string };
+  links: { "*": string }[];
 }
 
 export default function Game() {
-  const [startArticle, setStartArticle] = useState('Coffee')
-  const [targetArticle, setTargetArticle] = useState('Moon')
-  const [currentArticle, setCurrentArticle] = useState(startArticle)
-  const [clicks, setClicks] = useState(0)
-  const [players, setPlayers] = useState<Player[]>([])
-  const [gameStatus, setGameStatus] = useState<'waiting' | 'playing' | 'finished'>('waiting')
-
-  // Simulated Wikipedia content - replace with actual Wikipedia API integration
-  const [articleContent, setArticleContent] = useState<string>('')
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [currentArticle, setCurrentArticle] = useState(
+    searchParams.get("start") || ""
+  );
+  const [targetArticle] = useState(searchParams.get("target") || "");
+  const [gameCode] = useState(searchParams.get("code") || "");
+  const [clicks, setClicks] = useState(0);
+  const [content, setContent] = useState<WikipediaContent | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch actual Wikipedia content
-    
-    setArticleContent('This is a simulated Wikipedia article with <a href="#" data-article="Science">links</a>...')
-  }, [currentArticle])
+    const loadArticle = async () => {
+      setLoading(true);
+      try {
+        const data = await getWikipediaArticle(currentArticle);
+        setContent(data);
+      } catch (error) {
+        console.error("Failed to load article:", error);
+      }
+      setLoading(false);
+    };
 
-  const handleLinkClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement
-    if (target.tagName === 'A') {
-      e.preventDefault()
-      const nextArticle = target.getAttribute('data-article')
-      if (nextArticle) {
-        setCurrentArticle(nextArticle)
-        setClicks(clicks + 1)
+    if (currentArticle) {
+      loadArticle();
+    }
+  }, [currentArticle]);
 
-        if (nextArticle === targetArticle) {
-          setGameStatus('finished')
-          // TODO: Handle win condition
+  const handleLinkClick = async (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === "A" &&
+      target.getAttribute("href")?.startsWith("/wiki/")
+    ) {
+      e.preventDefault();
+      const articleTitle = target.getAttribute("href")?.split("/wiki/")[1];
+      if (articleTitle) {
+        setClicks((prev) => prev + 1);
+        setCurrentArticle(decodeURIComponent(articleTitle));
+
+        if (articleTitle === targetArticle) {
+          alert(`You won in ${clicks + 1} clicks!`);
+          router.push("/");
         }
       }
     }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading article...</div>
+      </div>
+    );
   }
 
   return (
@@ -48,34 +73,28 @@ export default function Game() {
         <div className="md:col-span-1 bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-bold mb-4">Game Info</h2>
           <div className="space-y-2">
-            <p><span className="font-semibold">Start:</span> {startArticle}</p>
-            <p><span className="font-semibold">Target:</span> {targetArticle}</p>
-            <p><span className="font-semibold">Clicks:</span> {clicks}</p>
-          </div>
-          
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Players</h3>
-            <div className="space-y-2">
-              {players.map((player, index) => (
-                <div key={index} className="flex justify-between">
-                  <span>{player.name}</span>
-                  <span>{player.clicks} clicks</span>
-                </div>
-              ))}
-            </div>
+            <p>
+              <span className="font-semibold">Target:</span> {targetArticle}
+            </p>
+            <p>
+              <span className="font-semibold">Clicks:</span> {clicks}
+            </p>
+            <p>
+              <span className="font-semibold">Current:</span> {currentArticle}
+            </p>
           </div>
         </div>
 
         {/* Wikipedia Article */}
         <div className="md:col-span-3 bg-white p-4 rounded-lg shadow">
-          <h1 className="text-2xl font-bold mb-4">{currentArticle}</h1>
-          <div 
+          <h1 className="text-2xl font-bold mb-4">{content?.title}</h1>
+          <div
             className="prose max-w-none"
             onClick={handleLinkClick}
-            dangerouslySetInnerHTML={{ __html: articleContent }}
+            dangerouslySetInnerHTML={{ __html: content?.text["*"] || "" }}
           />
         </div>
       </div>
     </div>
-  )
+  );
 }
