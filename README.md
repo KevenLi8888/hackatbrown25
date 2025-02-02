@@ -1,5 +1,3 @@
-Here’s the optimized and well-structured README in Markdown format for your WikiRace project:
-
 # 🏁 WikiRace
 
 WikiRace is a multiplayer game where participants navigate from a random Wikipedia page to a target Wikipedia page, using only internal links. The project provides a seamless lobby system, real-time game updates, hints using ChatGPT and embeddings, and post-game statistics.
