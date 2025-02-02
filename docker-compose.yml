@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: kevenli8888/wikirace-frontend:latest
+    container_name: wikirace-frontend
+    restart: unless-stopped
+    networks:
+      - wikirace-network
+    ports:
+      - "7680:3000"  # Host:Container
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+  backend:
+    image: kevenli8888/wikirace-backend:latest
+    container_name: wikirace-backend
+    restart: unless-stopped
+    networks:
+      - wikirace-network
+    ports:
+      - "7681:8000"  # Host:Container
+    volumes:
+      - ./cfg-prod.yaml:/app/cfg.yaml
+    command: ["./wikirace", "--config", "/app/cfg.yaml"]
+networks:
+  wikirace-network:
+    driver: bridge
