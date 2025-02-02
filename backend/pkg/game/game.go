@@ -297,6 +297,16 @@ func LeaveGame(gameCode, playerID string, db *mongo.Client) (*Game, error) {
 	if !playerFound {
 		return nil, stderror.New(stderror.ErrPlayerNotFound, errors.New("player not found, id: "+playerID))
 	}
+
+	// if the player list is empty, delete the game
+	if len(game.Players) == 0 {
+		_, err = collection.DeleteOne(nil, filter)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	}
+
 	game.ExpiresAfter = time.Now().Add(expirationTime)
 
 	// update the game in the database
