@@ -16,8 +16,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-gray-100`}>
-        {children}
+      <head>
+        <link 
+          href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
+          rel="stylesheet"
+        />
+      </head>
+      <body className={`${inter.className} bg-gradient-to-br from-blue-50 to-indigo-50`}>
+        <main className="min-h-screen p-4">
+          {children}
+        </main>
       </body>
     </html>
   );
