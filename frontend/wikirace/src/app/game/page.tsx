@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getWikipediaArticle } from "@/utils/wikipedia";
-import { getGameInfo, getHint } from "@/services/gameService";
+import { getGameInfo, getHint, addPath } from "@/services/gameService";
 import type { Game } from "@/types/game";
 
 interface WikipediaContent {
@@ -37,8 +37,16 @@ export default function Game() {
       try {
         const data = await getWikipediaArticle(currentArticle);
         setContent(data);
+        if (game?.state === "playing") {
+          await addPath(
+            gameCode,
+            localStorage.getItem("playerId") || "",
+            currentArticle
+          );
+        }
       } catch (error) {
         console.error("Failed to load article:", error);
+        setError("Failed to load article");
       }
       setLoading(false);
     };
@@ -46,7 +54,7 @@ export default function Game() {
     if (currentArticle) {
       loadArticle();
     }
-  }, [currentArticle]);
+  }, [currentArticle, game?.state, gameCode]);
 
   useEffect(() => {
     const fetchGameInfo = async () => {
@@ -58,6 +66,12 @@ export default function Game() {
       try {
         const gameData = await getGameInfo(gameCode);
         setGame(gameData);
+
+        if (gameData.state === "finished") {
+          router.push(`/stats?code=${gameCode}`);
+        } else if (gameData.state === "waiting") {
+          router.push(`/lobby?code=${gameCode}`);
+        }
       } catch (err) {
         setError("Failed to fetch game info");
       }
@@ -66,7 +80,7 @@ export default function Game() {
     fetchGameInfo();
     const interval = setInterval(fetchGameInfo, 5000);
     return () => clearInterval(interval);
-  }, [gameCode]);
+  }, [gameCode, router]);
 
   // Load Wikipedia's CSS once
   useEffect(() => {
@@ -81,7 +95,7 @@ export default function Game() {
     };
   }, []);
 
-  const handleLinkClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleLinkClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (
       target.tagName === "A" &&
@@ -95,7 +109,6 @@ export default function Game() {
 
         if (articleTitle === targetArticle) {
           alert(`You won in ${clicks + 1} clicks!`);
-          router.push("/");
         }
       }
     }
@@ -146,25 +159,6 @@ export default function Game() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Game: {game.code}</h1>
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">Status: {game.state}</h2>
-        {game.startArticle && <p>Start Article: {game.startArticle}</p>}
-        {game.targetArticle && <p>Target Article: {game.targetArticle}</p>}
-      </div>
-
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold mb-2">Players:</h2>
-        <ul>
-          {game.players.map((player) => (
-            <li key={player.id} className="mb-2">
-              {player.name} {player.isLeader && "(Leader)"}
-              {player.isWinner && "🏆"}
-            </li>
-          ))}
-        </ul>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Game Info Panel */}
         <div className="md:col-span-1 bg-white p-4 rounded-lg shadow">

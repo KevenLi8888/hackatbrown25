@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchWikipediaArticle } from "@/utils/wikipedia";
 import {
@@ -8,6 +8,7 @@ import {
   leaveGame,
   startGame,
   getGameInfo,
+  updateGame,
 } from "@/services/gameService";
 import { v4 as uuidv4 } from "uuid";
 
@@ -39,6 +40,12 @@ export default function Lobby() {
       Math.random().toString(36).substring(2, 8).toUpperCase()
   );
   const [error, setError] = useState("");
+  const [showStartSuggestions, setShowStartSuggestions] = useState(false);
+  const [showTargetSuggestions, setShowTargetSuggestions] = useState(false);
+
+  // Add refs to track input focus
+  const startInputRef = useRef<HTMLInputElement>(null);
+  const targetInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Store the playerId for future use
@@ -96,19 +103,34 @@ export default function Lobby() {
     return () => clearTimeout(searchTimer);
   }, [targetArticle]);
 
+  // Modify the polling effect
   useEffect(() => {
     const pollGameInfo = async () => {
       try {
         const game = await getGameInfo(gameCode);
         setPlayers(game.players);
-        if (game.state === "inProgress") {
+
+        // Only update articles if input is not focused and value is different
+        if (
+          !startInputRef.current?.matches(":focus") &&
+          game.startArticle !== startArticle
+        ) {
+          setStartArticle(game.startArticle);
+        }
+        if (
+          !targetInputRef.current?.matches(":focus") &&
+          game.targetArticle !== targetArticle
+        ) {
+          setTargetArticle(game.targetArticle);
+        }
+
+        if (game.state === "playing") {
           router.push(
             `/game?start=${game.startArticle}&target=${game.targetArticle}&code=${gameCode}`
           );
         }
       } catch (error) {
         console.error("Failed to get game updates:", error);
-        // Game not found (probably closed by leader)
         alert("Game has been closed by the leader");
         router.push("/");
       }
@@ -116,7 +138,7 @@ export default function Lobby() {
 
     const interval = setInterval(pollGameInfo, 1000);
     return () => clearInterval(interval);
-  }, [gameCode, router]);
+  }, [gameCode, router, startArticle, targetArticle]);
 
   const handleStartGame = async () => {
     if (!startArticle || !targetArticle) {
@@ -126,6 +148,9 @@ export default function Lobby() {
 
     try {
       await startGame(gameCode, startArticle, targetArticle);
+      router.push(
+        `/game?start=${startArticle}&target=${targetArticle}&code=${gameCode}`
+      );
     } catch (error) {
       console.error("Failed to start game:", error);
     }
@@ -142,51 +167,43 @@ export default function Lobby() {
     }
   };
 
-  // const handleCreateGame = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   try {
-  //     const newPlayerId = uuidv4();
-  //     const game = await createGame(playerName, newPlayerId);
+  const handleStartArticleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setStartArticle(value);
+    setShowStartSuggestions(value.length > 0);
+  };
 
-  //     // Update localStorage
-  //     localStorage.setItem("playerId", newPlayerId);
-  //     localStorage.setItem("playerName", playerName);
+  const handleTargetArticleChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    setTargetArticle(value);
+    setShowTargetSuggestions(value.length > 0);
+  };
 
-  //     // Update state directly
-  //     setGameCode(game.code);
-  //     setPlayers(game.players);
-  //     setIsLeader(true);
+  const handleStartArticleSelect = async (article: string) => {
+    setStartArticle(article);
+    setShowStartSuggestions(false);
+    if (isLeader) {
+      try {
+        await updateGame(gameCode, article, targetArticle);
+      } catch (error) {
+        console.error("Failed to update game:", error);
+      }
+    }
+  };
 
-  //     // Update URL without reload
-  //     window.history.replaceState({}, "", `/lobby?code=${game.code}`);
-  //   } catch (err) {
-  //     setError("Failed to create game");
-  //   }
-  // };
-
-  // const handleJoinGame = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   try {
-  //     const newPlayerId = uuidv4();
-  //     const game = await joinGame(playerName, newPlayerId, gameCode);
-
-  //     // Update localStorage
-  //     localStorage.setItem("playerId", newPlayerId);
-  //     localStorage.setItem("playerName", playerName);
-
-  //     // Update state directly
-  //     setGameCode(game.code);
-  //     setPlayers(game.players);
-  //     setIsLeader(
-  //       game.players.find((p) => p.id === newPlayerId)?.isLeader || false
-  //     );
-
-  //     // Update URL without reload
-  //     window.history.replaceState({}, "", `/lobby?code=${game.code}`);
-  //   } catch (err) {
-  //     setError("Failed to join game");
-  //   }
-  // };
+  const handleTargetArticleSelect = async (article: string) => {
+    setTargetArticle(article);
+    setShowTargetSuggestions(false);
+    if (isLeader) {
+      try {
+        await updateGame(gameCode, startArticle, article);
+      } catch (error) {
+        console.error("Failed to update game:", error);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -211,30 +228,32 @@ export default function Lobby() {
                   Start Article
                 </label>
                 <input
+                  ref={startInputRef}
                   id="start-article"
                   type="text"
                   value={startArticle}
-                  onChange={(e) => setStartArticle(e.target.value)}
+                  onChange={handleStartArticleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   placeholder="e.g., Coffee"
                   disabled={!isLeader}
                 />
-                {startSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg">
-                    {startSuggestions.map((suggestion) => (
-                      <div
-                        key={suggestion.pageid}
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          setStartArticle(suggestion.title);
-                          setStartSuggestions([]);
-                        }}
-                      >
-                        {suggestion.title}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {showStartSuggestions &&
+                  startSuggestions.length > 0 &&
+                  isLeader && (
+                    <div className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg">
+                      {startSuggestions.map((suggestion) => (
+                        <div
+                          key={suggestion.pageid}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() =>
+                            handleStartArticleSelect(suggestion.title)
+                          }
+                        >
+                          {suggestion.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </div>
               <div className="relative">
                 <label
@@ -244,30 +263,32 @@ export default function Lobby() {
                   Target Article
                 </label>
                 <input
+                  ref={targetInputRef}
                   id="target-article"
                   type="text"
                   value={targetArticle}
-                  onChange={(e) => setTargetArticle(e.target.value)}
+                  onChange={handleTargetArticleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   placeholder="e.g., Moon"
                   disabled={!isLeader}
                 />
-                {targetSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg">
-                    {targetSuggestions.map((suggestion) => (
-                      <div
-                        key={suggestion.pageid}
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          setTargetArticle(suggestion.title);
-                          setTargetSuggestions([]);
-                        }}
-                      >
-                        {suggestion.title}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {showTargetSuggestions &&
+                  targetSuggestions.length > 0 &&
+                  isLeader && (
+                    <div className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg">
+                      {targetSuggestions.map((suggestion) => (
+                        <div
+                          key={suggestion.pageid}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() =>
+                            handleTargetArticleSelect(suggestion.title)
+                          }
+                        >
+                          {suggestion.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </div>
             </div>
           </div>
