@@ -1,6 +1,6 @@
 import { Game } from '@/types/game';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function createGame(leaderName: string, playerId: string): Promise<Game> {
   const response = await fetch(`${API_BASE_URL}/api/v1/games/create`, {
@@ -62,7 +62,7 @@ export async function getGameInfo(gameCode: string): Promise<Game> {
 }
 
 export async function startGame(gameCode: string, startArticle: string, targetArticle: string): Promise<Game> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/game/start`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/games/start`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -75,6 +75,7 @@ export async function startGame(gameCode: string, startArticle: string, targetAr
   });
 
   if (!response.ok) {
+    console.error('Start game failed:', await response.text());
     throw new Error('Failed to start game');
   }
 
@@ -116,4 +117,68 @@ export async function getHint(links: string[], target: string): Promise<{ simila
   }
 
   return response.json();
+}
+
+export async function addPath(gameCode: string, playerId: string, articleName: string): Promise<Game> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/games/addpath`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      gameCode,
+      playerID: playerId,
+      articleName,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('Add path failed:', await response.text());
+    throw new Error('Failed to add path');
+  }
+
+  const data = await response.json();
+  return data.data;
+}
+
+export async function resetGame(gameCode: string): Promise<Game> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/games/reset`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      gameCode,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('Reset game failed:', await response.text());
+    throw new Error('Failed to reset game');
+  }
+
+  const data = await response.json();
+  return data.data;
+}
+
+export async function updateGame(gameCode: string, startArticle: string, targetArticle: string): Promise<Game> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/games/update`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      gameCode,
+      startArticle,
+      targetArticle,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('Update game failed:', await response.text());
+    throw new Error('Failed to update game');
+  }
+
+  const data = await response.json();
+  return data.data;
 } 

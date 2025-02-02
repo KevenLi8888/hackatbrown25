@@ -9,7 +9,7 @@ export interface Player {
 export interface Game {
   code: string;
   players: Player[];
-  state: 'waiting' | 'inProgress' | 'ended';
+  state: 'waiting' | 'playing' | 'finished';
   startArticle: string;
   targetArticle: string;
   startTime?: string;
