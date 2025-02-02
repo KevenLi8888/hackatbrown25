@@ -21,11 +21,9 @@ export default function Join() {
       const newPlayerId = uuidv4();
       const game = await joinGame(playerName, newPlayerId, gameCode);
 
-      // Store player info
       localStorage.setItem("playerId", newPlayerId);
       localStorage.setItem("playerName", playerName);
 
-      // Navigate to lobby
       router.push(`/lobby?code=${game.code}`);
     } catch (err) {
       setError("Failed to join game. Please check the game code.");
@@ -33,36 +31,43 @@ export default function Join() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">Join Game</h2>
-          <p className="mt-2 text-gray-600">Enter the game code to join</p>
-          {error && <p className="mt-2 text-red-600">{error}</p>}
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Join Game</h2>
+          <p className="text-gray-600">Enter the game code to join</p>
+          {error && (
+            <p className="mt-2 text-sm text-red-600 bg-red-50 py-2 px-3 rounded-lg">
+              {error}
+            </p>
+          )}
         </div>
 
-        <form onSubmit={handleJoinGame}>
-          <input
-            type="text"
-            placeholder="Game Code"
-            value={gameCode}
-            onChange={(e) => setGameCode(e.target.value.toUpperCase())}
-            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm mb-4"
-            required
-          />
-          <div className="space-y-4 mt-4">
+        <form onSubmit={handleJoinGame} className="space-y-6">
+          <div>
+            <input
+              type="text"
+              placeholder="Game Code"
+              value={gameCode}
+              onChange={(e) => setGameCode(e.target.value.toUpperCase())}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div className="space-y-4">
             <button
-                type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              type="submit"
+              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
             >
-                Join Game
+              Join Game
             </button>
-            
+
             <button
-                onClick={() => router.back()}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              onClick={() => router.back()}
+              className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
             >
-                Back
+              Back
             </button>
           </div>
         </form>

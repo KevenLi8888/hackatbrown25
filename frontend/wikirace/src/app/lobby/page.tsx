@@ -216,25 +216,23 @@ export default function Lobby() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-2xl w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
-        <div className="text-center">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8">
+        <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900">Game Lobby</h2>
-          <p className="mt-2 text-gray-600">Game Code: {gameCode}</p>
+          <div className="mt-2 inline-flex items-center px-4 py-2 bg-gray-100 rounded-lg">
+            <span className="text-gray-600">Game Code:</span>
+            <span className="ml-2 font-mono font-bold text-gray-900">{gameCode}</span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Game Settings */}
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-900">
-              Game Settings
-            </h3>
+            <h3 className="text-xl font-semibold text-gray-900">Game Settings</h3>
             <div className="space-y-4">
               <div className="relative">
-                <label
-                  htmlFor="start-article"
-                  className="block text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="start-article" className="block text-sm font-medium text-gray-700 mb-1">
                   Start Article
                 </label>
                 <input
@@ -243,7 +241,7 @@ export default function Lobby() {
                   type="text"
                   value={startArticle}
                   onChange={handleStartArticleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., Coffee"
                   disabled={!isLeader}
                 />
@@ -266,10 +264,7 @@ export default function Lobby() {
                   )}
               </div>
               <div className="relative">
-                <label
-                  htmlFor="target-article"
-                  className="block text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="target-article" className="block text-sm font-medium text-gray-700 mb-1">
                   Target Article
                 </label>
                 <input
@@ -278,7 +273,7 @@ export default function Lobby() {
                   type="text"
                   value={targetArticle}
                   onChange={handleTargetArticleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., Moon"
                   disabled={!isLeader}
                 />
@@ -305,18 +300,16 @@ export default function Lobby() {
 
           {/* Players List */}
           <div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Players
-            </h3>
-            <div className="space-y-2">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Players</h3>
+            <div className="space-y-3">
               {players.map((player) => (
                 <div
                   key={player.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                 >
-                  <span className="text-gray-900">{player.name}</span>
+                  <span className="text-gray-900 font-medium">{player.name}</span>
                   {player.isLeader && (
-                    <span className="text-sm text-blue-600 font-medium">
+                    <span className="px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-full">
                       Leader
                     </span>
                   )}
@@ -327,23 +320,23 @@ export default function Lobby() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-4">
+        <div className="flex justify-end space-x-4 mt-8">
           <button
             onClick={handleLeave}
-            className="px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className="px-6 py-3 border border-red-300 rounded-lg text-red-700 hover:bg-red-50 transition-colors duration-200"
           >
             Leave Game
           </button>
           <button
             onClick={() => navigator.clipboard.writeText(gameCode)}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
           >
             Copy Game Code
           </button>
           {isLeader && (
             <button
               onClick={handleStartGame}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
             >
               Start Game
             </button>

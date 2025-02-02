@@ -244,55 +244,111 @@ export default function Game() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Game Info Panel */}
-        <div className="md:col-span-1 bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-bold mb-4">Game Info</h2>
-          <div className="space-y-2">
-            <p>
-              <span className="font-semibold">Player:</span> {playerName}
-            </p>
-            <p>
-              <span className="font-semibold">Target:</span> {targetArticle}
-            </p>
-            <p>
-              <span className="font-semibold">Clicks:</span> {clicks}
-            </p>
-            <p>
-              <span className="font-semibold">Current:</span> {currentArticle}
-            </p>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Game Info Panel */}
+      <div className="md:col-span-1">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+            <span className="material-icons-outlined">sports_esports</span>
+            Game Info
+          </h2>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+              <p className="text-sm font-medium text-blue-600 mb-1 flex items-center gap-1">
+                <span className="material-icons-outlined text-sm">person</span>
+                Player
+              </p>
+              <p className="font-semibold text-gray-800">{playerName}</p>
+            </div>
+            
+            <div className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+              <p className="text-sm font-medium text-purple-600 mb-1 flex items-center gap-1">
+                <span className="material-icons-outlined text-sm">flag</span>
+                Target
+              </p>
+              <p className="font-semibold text-gray-800">{targetArticle}</p>
+            </div>
+            
+            <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
+              <p className="text-sm font-medium text-green-600 mb-1 flex items-center gap-1">
+                <span className="material-icons-outlined text-sm">touch_app</span>
+                Clicks
+              </p>
+              <p className="font-semibold text-gray-800">{clicks}</p>
+            </div>
+            
+            <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg border border-amber-200">
+              <p className="text-sm font-medium text-amber-600 mb-1 flex items-center gap-1">
+                <span className="material-icons-outlined text-sm">article</span>
+                Current Article
+              </p>
+              <p className="font-semibold text-gray-800">{currentArticle}</p>
+            </div>
           </div>
-          <div className="mt-4">
+
+          <div className="mt-6 space-y-3">
             <button
               onClick={handleHintClick}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+              className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
-              Hint
+              <span className="material-icons-outlined">lightbulb</span>
+              Get Hint
             </button>
-          </div>
-          <div className="mt-4">
             <button
               onClick={handleReset}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+              className="w-full py-3 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
+              <span className="material-icons-outlined">refresh</span>
               Give Up
             </button>
           </div>
-          <div className="flex flex-col gap-3">
-            {hintedLinks.map((link) => (
-              <div key={link.href} className="flex flex-col gap-1">
-                <span>{link.title}</span>
-                <span>Similarity: {link.similarity.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Wikipedia Article */}
-        <div className="md:col-span-3 bg-white shadow p-4 rounded-lg">
+          {hintedLinks.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+                <span className="material-icons-outlined">tips_and_updates</span>
+                Hints
+              </h3>
+              <div className="space-y-3">
+                {hintedLinks.map((link) => (
+                  <div 
+                    key={link.href} 
+                    className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg hover:from-gray-100 hover:to-gray-200 transition-all duration-200 border border-gray-200"
+                  >
+                    <p className="font-medium text-gray-800 break-words">{link.title}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <div 
+                        className={`h-2.5 flex-grow rounded-full bg-gray-200`}
+                      >
+                        <div 
+                          className={`h-2.5 rounded-full transition-all duration-500 ${
+                            link.similarity > 0.75 
+                              ? 'bg-gradient-to-r from-green-400 to-green-500' 
+                              : link.similarity > 0.5 
+                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
+                              : 'bg-gradient-to-r from-red-400 to-red-500'
+                          }`}
+                          style={{ width: `${link.similarity * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-gray-600 whitespace-nowrap">
+                        {(link.similarity * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Wikipedia Article */}
+      <div className="md:col-span-3">
+        <div className="bg-white rounded-2xl shadow-lg p-6">
           {content && (
-            <h1 className="text-3xl font-bold mb-4">{content.title}</h1>
+            <h1 className="text-3xl font-bold mb-6 text-gray-800">{content.title}</h1>
           )}
           <div
             id="mw-content-text"
