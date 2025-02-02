@@ -79,7 +79,7 @@ export default function Stats() {
           ))}
         </div>
 
-        {game.players.find(p => p.id === playerId)?.isLeader && (
+        {game.players.find(p => p.id === playerId)?.isLeader ? (
           <div className="mt-8 flex justify-center">
             <button
               onClick={handleReset}
@@ -87,6 +87,11 @@ export default function Stats() {
             >
               Play Again
             </button>
+          </div>
+        ) : (
+          <div className="mt-8 flex justify-center items-center bg-gray-50 rounded-lg py-3 px-6">
+            <div className="animate-pulse mr-3 h-2 w-2 rounded-full bg-blue-600"></div>
+            <span className="text-gray-600">Waiting for the leader to restart...</span>
           </div>
         )}
       </div>
