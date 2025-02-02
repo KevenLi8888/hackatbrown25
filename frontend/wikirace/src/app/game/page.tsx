@@ -68,7 +68,9 @@ export default function Game() {
   };
 
   useEffect(() => {
-    const loadArticle = async () => {
+    const loadInitialArticle = async () => {
+      if (!currentArticle || content) return; // Skip if we already have content
+      
       setLoading(true);
       try {
         const data = await getWikipediaArticle(currentArticle);
@@ -77,7 +79,7 @@ export default function Game() {
           await addPath(
             gameCode,
             localStorage.getItem("playerId") || "",
-            currentArticle
+            data.title
           );
         }
       } catch (error) {
@@ -87,10 +89,8 @@ export default function Game() {
       setLoading(false);
     };
 
-    if (currentArticle) {
-      loadArticle();
-    }
-  }, [currentArticle, game?.state, gameCode]);
+    loadInitialArticle();
+  }, [currentArticle, game?.state, gameCode]); // Removed content from dependencies to prevent loops
 
   useEffect(() => {
     const fetchGameInfo = async () => {
@@ -148,14 +148,32 @@ export default function Game() {
       const articleTitle = target.getAttribute("href")?.split("/wiki/")[1];
       if (articleTitle) {
         setClicks((prev) => prev + 1);
-        setCurrentArticle(decodeURIComponent(articleTitle));
         // Clear hints when navigating to new article
         setGptHints([]);
         setHintedLinks([]);
-
-        if (articleTitle === targetArticle) {
-          alert(`You won in ${clicks + 1} clicks!`);
+        setLoading(true);
+        
+        try {
+          const data = await getWikipediaArticle(decodeURIComponent(articleTitle));
+          setCurrentArticle(data.title); // Update with the canonical title from API
+          setContent(data); // Set content directly here
+          
+          if (game?.state === "playing") {
+            await addPath(
+              gameCode,
+              localStorage.getItem("playerId") || "",
+              data.title
+            );
+            
+            if (data.title === targetArticle) {
+              alert(`You won in ${clicks + 1} clicks!`);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load article:", error);
+          setError("Failed to load article");
         }
+        setLoading(false);
       }
     }
   };

@@ -278,10 +278,32 @@ export default function Lobby() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Game Lobby</h2>
-          <div className="mt-2 inline-flex items-center px-4 py-2 bg-gray-100 rounded-lg">
-            <span className="text-gray-600">Game Code:</span>
-            <span className="ml-2 font-mono font-bold text-gray-900">{gameCode}</span>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Game Lobby</h2>
+          <div className="inline-flex items-center justify-center gap-2">
+            <div className="flex items-center px-4 py-2 bg-gray-100 rounded-lg">
+              <span className="text-gray-600 mr-2">Game Code:</span>
+              <span className="font-mono font-bold text-gray-900">{gameCode}</span>
+            </div>
+            <button
+              onClick={() => navigator.clipboard.writeText(gameCode)}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+              title="Copy game code"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -414,11 +436,11 @@ export default function Lobby() {
           {/* Players List */}
           <div>
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Players</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 min-h-[200px]">
               {players.map((player) => (
                 <div
                   key={player.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
                 >
                   <span className="text-gray-900 font-medium">{player.name}</span>
                   {player.isLeader && (
@@ -440,19 +462,20 @@ export default function Lobby() {
           >
             Leave Game
           </button>
-          <button
-            onClick={() => navigator.clipboard.writeText(gameCode)}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-          >
-            Copy Game Code
-          </button>
-          {isLeader && (
+          {isLeader ? (
             <button
               onClick={handleStartGame}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
             >
               Start Game
             </button>
+          ) : (
+            <div className="flex items-center px-6 py-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                <div className="animate-pulse mr-3 h-2 w-2 rounded-full bg-blue-600"></div>
+                <span className="text-gray-600">Waiting for the leader to start...</span>
+              </div>
+            </div>
           )}
         </div>
       </div>
