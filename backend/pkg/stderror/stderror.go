@@ -11,6 +11,7 @@ var (
 	ErrValidation   = &StdError{Code: 10006, Message: "Validation failed."}
 	ErrDatabase     = &StdError{Code: 10007, Message: "Database error."}
 	ErrAPI          = &StdError{Code: 10008, Message: "API error."}
+	ErrGameNotFound = &StdError{Code: 10009, Message: "Game not found."}
 )
 
 type StdError struct {

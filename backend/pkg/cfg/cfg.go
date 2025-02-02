@@ -10,6 +10,11 @@ type Config struct {
 		Env  string `yaml:"env"` // "dev", "staging", "prod"
 		Port string `yaml:"port"`
 	} `yaml:"server"`
+	MongoDB struct {
+		URI        string `yaml:"uri"`
+		DB         string `yaml:"db"`
+		Collection string `yaml:"collection"`
+	} `yaml:"mongodb"`
 	Logger struct {
 		Level string `yaml:"level"` // "debug", "info", "warn", "error", "dpanic", "panic", and "fatal"
 	} `yaml:"logger"`

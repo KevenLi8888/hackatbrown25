@@ -1,5 +1,9 @@
 server:
   env: dev
   port: 12123
+mongodb:
+  uri: mongodb://localhost:27017
+  db: mydb
+  collection: mycollection
 logger:
   level: debug

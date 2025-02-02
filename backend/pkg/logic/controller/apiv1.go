@@ -26,3 +26,44 @@ func (a *APIV1) HealthCheck(ctx *gin.Context) {
 	}
 	SendResponse(ctx, data, nil)
 }
+
+func (a *APIV1) CreateGame(ctx *gin.Context) {
+	var req apiv1.CreateGameRequest
+	if err := ctx.Bind(&req); err != nil {
+		SendResponse(ctx, nil, stderror.New(stderror.ErrBind, err))
+		return
+	}
+	data, err := apiv1.CreateGame(a.app, req)
+	if err != nil {
+		SendResponse(ctx, nil, stderror.New(stderror.ErrInternal, err))
+	}
+	SendResponse(ctx, data, nil)
+}
+
+func (a *APIV1) JoinGame(ctx *gin.Context) {
+	var req apiv1.JoinGameRequest
+	if err := ctx.Bind(&req); err != nil {
+		SendResponse(ctx, nil, stderror.New(stderror.ErrBind, err))
+		return
+	}
+	data, err := apiv1.JoinGame(a.app, req)
+	if err != nil {
+		SendResponse(ctx, nil, err)
+		return
+	}
+	SendResponse(ctx, data, nil)
+}
+
+func (a *APIV1) GetGame(ctx *gin.Context) {
+	gameCode := ctx.Query("gameCode")
+	if gameCode == "" {
+		SendResponse(ctx, nil, stderror.New(stderror.ErrBadRequest, nil))
+		return
+	}
+	data, err := apiv1.GetGame(a.app, gameCode)
+	if err != nil {
+		SendResponse(ctx, nil, err)
+		return
+	}
+	SendResponse(ctx, data, nil)
+}
