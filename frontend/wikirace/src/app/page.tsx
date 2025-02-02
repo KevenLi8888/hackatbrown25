@@ -1,14 +1,39 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createGame } from "@/services/gameService";
+import { v4 as uuidv4 } from "uuid";
 
 export default function Home() {
+  const router = useRouter();
   const [playerName, setPlayerName] = useState("");
 
   const handleNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (playerName.trim()) {
       localStorage.setItem("playerName", playerName.trim());
+    }
+  };
+
+  const handleCreateGame = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!playerName.trim()) {
+      alert("Please enter your name first");
+      return;
+    }
+
+    try {
+      const newPlayerId = uuidv4();
+      console.log("Creating game with:", { playerName, newPlayerId }); // Debug log
+      const game = await createGame(playerName, newPlayerId);
+
+      localStorage.setItem("playerName", playerName.trim());
+      localStorage.setItem("playerId", newPlayerId);
+      router.push(`/lobby?code=${game.code}`);
+    } catch (error) {
+      console.error("Create game error:", error); // Log the actual error
+      alert("Failed to create game. Please try again.");
     }
   };
 
@@ -48,20 +73,12 @@ export default function Home() {
               Join Game
             </Link>
 
-            <Link
-              href="/lobby"
+            <button
+              onClick={handleCreateGame}
               className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              onClick={(e) => {
-                if (!playerName.trim()) {
-                  e.preventDefault();
-                  alert("Please enter your name first");
-                } else {
-                  localStorage.setItem("playerName", playerName.trim());
-                }
-              }}
             >
               Create Game
-            </Link>
+            </button>
           </div>
         </form>
       </div>

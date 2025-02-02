@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getWikipediaArticle } from "@/utils/wikipedia";
+import { getGameInfo, getHint } from "@/services/gameService";
+import type { Game } from "@/types/game";
 
 interface WikipediaContent {
   title: string;
@@ -24,6 +26,8 @@ export default function Game() {
   const [clicks, setClicks] = useState(0);
   const [content, setContent] = useState<WikipediaContent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [game, setGame] = useState<Game | null>(null);
+  const [error, setError] = useState("");
 
   const articleContainerRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +47,26 @@ export default function Game() {
       loadArticle();
     }
   }, [currentArticle]);
+
+  useEffect(() => {
+    const fetchGameInfo = async () => {
+      if (!gameCode) {
+        setError("No game code provided");
+        return;
+      }
+
+      try {
+        const gameData = await getGameInfo(gameCode);
+        setGame(gameData);
+      } catch (err) {
+        setError("Failed to fetch game info");
+      }
+    };
+
+    fetchGameInfo();
+    const interval = setInterval(fetchGameInfo, 5000);
+    return () => clearInterval(interval);
+  }, [gameCode]);
 
   // Load Wikipedia's CSS once
   useEffect(() => {
@@ -91,26 +115,11 @@ export default function Game() {
     );
 
     try {
-      const response = await fetch("/api/game/hint", {
-        method: "POST",
-        body: JSON.stringify({
-          links: linkTitles,
-          target: targetArticle,
-        }),
-      });
+      const { similarities } = await getHint(linkTitles, targetArticle);
 
-      if (!response.ok) {
-        throw new Error("Failed to get hint from API");
-      }
-
-      const data = await response.json();
-      const { similarities } = data;
-
-      similarities.forEach(({ link, similarity }: any) => {
+      similarities.forEach(({ link, similarity }) => {
         const matchingLink = firstTenLinks.find((l) =>
-          l
-            .getAttribute("href")
-            ?.endsWith(encodeURIComponent(link))
+          l.getAttribute("href")?.endsWith(encodeURIComponent(link))
         );
         if (matchingLink) {
           let color = "red";
@@ -127,16 +136,35 @@ export default function Game() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading article...</div>
-      </div>
-    );
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
+  if (!game) {
+    return <div>Loading...</div>;
   }
 
   return (
     <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Game: {game.code}</h1>
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Status: {game.state}</h2>
+        {game.startArticle && <p>Start Article: {game.startArticle}</p>}
+        {game.targetArticle && <p>Target Article: {game.targetArticle}</p>}
+      </div>
+
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold mb-2">Players:</h2>
+        <ul>
+          {game.players.map((player) => (
+            <li key={player.id} className="mb-2">
+              {player.name} {player.isLeader && "(Leader)"}
+              {player.isWinner && "🏆"}
+            </li>
+          ))}
+        </ul>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Game Info Panel */}
         <div className="md:col-span-1 bg-white p-4 rounded-lg shadow">
