@@ -116,3 +116,18 @@ func (a *APIV1) ResetGame(ctx *gin.Context) {
 	}
 	SendResponse(ctx, data, nil)
 }
+
+// UpdateGame implements /api/v1/games/update
+func (a *APIV1) UpdateGame(ctx *gin.Context) {
+	var req apiv1.UpdateGameRequest
+	if err := ctx.Bind(&req); err != nil {
+		SendResponse(ctx, nil, stderror.New(stderror.ErrBind, err))
+		return
+	}
+	data, err := apiv1.UpdateGame(a.app, req)
+	if err != nil {
+		SendResponse(ctx, nil, err)
+		return
+	}
+	SendResponse(ctx, data, nil)
+}

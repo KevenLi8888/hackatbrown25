@@ -86,3 +86,18 @@ type ResetGameResponse struct {
 func ResetGame(app logic.Application, req ResetGameRequest) (interface{}, error) {
 	return game.ResetGame(req.GameCode, app.GetMongoDB())
 }
+
+type UpdateGameRequest struct {
+	GameCode      string `json:"gameCode"`
+	StartArticle  string `json:"startArticle"`
+	TargetArticle string `json:"targetArticle"`
+}
+
+type UpdateGameResponse struct {
+	Game game.Game `json:"game"`
+}
+
+// UpdateGame implements /api/v1/games/update
+func UpdateGame(app logic.Application, req UpdateGameRequest) (interface{}, error) {
+	return game.UpdateGame(req.GameCode, req.StartArticle, req.TargetArticle, app.GetMongoDB())
+}

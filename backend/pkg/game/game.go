@@ -237,3 +237,33 @@ func ResetGame(gameCode string, db *mongo.Client) (*Game, error) {
 	}
 	return &game, nil
 }
+
+// UpdateGame updates the start and target articles of a game
+func UpdateGame(gameCode, startArticle, targetArticle string, db *mongo.Client) (*Game, error) {
+	// get the game from the database
+	collection := mongodb.GetCollection(db, "wikirace", "games")
+	filter := map[string]string{
+		"code": gameCode,
+	}
+	game := Game{}
+	err := collection.FindOne(nil, filter).Decode(&game)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			logger.Debugf("game not found: %v", gameCode)
+			return nil, stderror.New(stderror.ErrGameNotFound, errors.New("game not found, code: "+gameCode))
+		}
+		return nil, err
+	}
+
+	// update the game
+	game.StartArticle = startArticle
+	game.TargetArticle = targetArticle
+	game.ExpiresAfter = time.Now().Add(expirationTime)
+
+	// update the game in the database
+	_, err = collection.ReplaceOne(nil, filter, game)
+	if err != nil {
+		return nil, err
+	}
+	return &game, nil
+}
