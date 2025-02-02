@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import {Suspense} from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,7 +25,9 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-gradient-to-br from-blue-50 to-indigo-50`}>
         <main className="min-h-screen p-4">
+            <Suspense fallback={<div>Loading...</div>}>
           {children}
+            </Suspense>
         </main>
       </body>
     </html>

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { joinGame } from "@/services/gameService";
 import { v4 as uuidv4 } from "uuid";
@@ -8,7 +8,16 @@ export default function Join() {
   const router = useRouter();
   const [gameCode, setGameCode] = useState("");
   const [error, setError] = useState("");
-  const playerName = localStorage.getItem("playerName") || "Anonymous";
+  const [playerName, setPlayerName] = useState("Anonymous");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedPlayerName = localStorage.getItem("playerName");
+      if (storedPlayerName) {
+        setPlayerName(storedPlayerName);
+      }
+    }
+  }, []);
 
   const handleJoinGame = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +30,10 @@ export default function Join() {
       const newPlayerId = uuidv4();
       const game = await joinGame(playerName, newPlayerId, gameCode);
 
-      localStorage.setItem("playerId", newPlayerId);
-      localStorage.setItem("playerName", playerName);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("playerId", newPlayerId);
+        localStorage.setItem("playerName", playerName);
+      }
 
       router.push(`/lobby?code=${game.code}`);
     } catch (err) {
