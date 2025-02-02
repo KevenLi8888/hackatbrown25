@@ -24,6 +24,11 @@ interface HintedLink {
   title: string;
 }
 
+interface GPTHint {
+  link: string;
+  reasoning: string;
+}
+
 function normalizeWikiLink(url: string): string {
   // Remove /wiki/ prefix and decode URI components
   const link = url.split("/wiki/")[1] || "";
@@ -48,6 +53,8 @@ export default function Game() {
   const [game, setGame] = useState<Game | null>(null);
   const [error, setError] = useState("");
   const [hintedLinks, setHintedLinks] = useState<HintedLink[]>([]);
+  const [gptHints, setGptHints] = useState<GPTHint[]>([]);
+  const [isLoadingGPTHint, setIsLoadingGPTHint] = useState(false);
 
   const articleContainerRef = useRef<HTMLDivElement>(null);
 
@@ -142,6 +149,9 @@ export default function Game() {
       if (articleTitle) {
         setClicks((prev) => prev + 1);
         setCurrentArticle(decodeURIComponent(articleTitle));
+        // Clear hints when navigating to new article
+        setGptHints([]);
+        setHintedLinks([]);
 
         if (articleTitle === targetArticle) {
           alert(`You won in ${clicks + 1} clicks!`);
@@ -180,7 +190,7 @@ export default function Game() {
     if (linkTitles.length === 0) return;
 
     try {
-      const response = await fetch("/game/hints", {
+      const response = await fetch("/game/embedding-hints", {
         method: "POST",
         body: JSON.stringify({
           links: linkTitles,
@@ -221,6 +231,56 @@ export default function Game() {
       setHintedLinks(newHintedLinks);
     } catch (error) {
       console.error("Error retrieving hint:", error);
+    }
+  };
+
+  const handleGPTHint = async () => {
+    if (!articleContainerRef.current) return;
+    setIsLoadingGPTHint(true);
+
+    const links = Array.from(
+      articleContainerRef.current.querySelectorAll("a[href^='/wiki/']")
+    ) as HTMLAnchorElement[];
+
+    if (links.length === 0) return;
+
+    const linkTitles = Array.from(
+      new Set(
+        links.map((link) => normalizeWikiLink(link.getAttribute("href") || ""))
+      )
+    );
+
+    try {
+      const response = await fetch("/game/gpt-hints", {
+        method: "POST",
+        body: JSON.stringify({
+          links: linkTitles,
+          currentArticle,
+          target: targetArticle,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get GPT hint");
+      }
+
+      const data = await response.json();
+      setGptHints(data.suggestions);
+
+      // Highlight the suggested links
+      data.suggestions.forEach((hint: GPTHint) => {
+        const matchingLinks = links.filter(
+          (link) =>
+            normalizeWikiLink(link.getAttribute("href") || "") === hint.link
+        );
+        matchingLinks.forEach((link) => {
+          link.className = `${link.className} ${styles.gptHintedLink}`;
+        });
+      });
+    } catch (error) {
+      console.error("Error retrieving GPT hint:", error);
+    } finally {
+      setIsLoadingGPTHint(false);
     }
   };
 
@@ -293,12 +353,22 @@ export default function Game() {
 
           <div className="mt-6 space-y-3">
             <button
+              onClick={handleGPTHint}
+              disabled={isLoadingGPTHint}
+              className="w-full py-3 px-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50"
+            >
+              <span className="material-icons-outlined">psychology</span>
+              {isLoadingGPTHint ? "Thinking..." : "Get Help from ChatGPT"}
+            </button>
+
+            <button
               onClick={handleHintClick}
               className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
               <span className="material-icons-outlined">lightbulb</span>
-              Get Hint from Embeddings
+              Get Embeddings Similarity
             </button>
+
             <button
               onClick={handleReset}
               className="w-full py-3 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
@@ -308,11 +378,31 @@ export default function Game() {
             </button>
           </div>
 
+          {gptHints.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+                <span className="material-icons-outlined">psychology</span>
+                ChatGPT Analysis
+              </h3>
+              <div className="space-y-3">
+                {gptHints.map((hint, index) => (
+                  <div
+                    key={index}
+                    className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all duration-200 border border-purple-200"
+                  >
+                    <p className="font-medium text-purple-800 break-words">{hint.link}</p>
+                    <p className="mt-2 text-sm text-gray-600">{hint.reasoning}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {hintedLinks.length > 0 && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
                 <span className="material-icons-outlined">tips_and_updates</span>
-                Hints
+                Embeddings Similarity
               </h3>
               <div className="space-y-3">
                 {hintedLinks.map((link) => (
