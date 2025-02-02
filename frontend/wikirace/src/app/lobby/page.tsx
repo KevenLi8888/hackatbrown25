@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { searchWikipediaArticle } from "@/utils/wikipedia";
+import { searchWikipediaArticle, getRandomWikipediaArticle } from "@/utils/wikipedia";
 import {
   createGame,
   joinGame,
@@ -150,6 +150,28 @@ export default function Lobby() {
     return () => clearInterval(interval);
   }, [gameCode, router, startArticle, targetArticle]);
 
+  // Add this useEffect to get random articles when creating a new game
+  useEffect(() => {
+    const initializeRandomArticles = async () => {
+      // Only get random articles if we're the leader and there are no articles set
+      if (isLeader && !startArticle && !targetArticle) {
+        try {
+          const [randomStart, randomTarget] = await Promise.all([
+            getRandomWikipediaArticle(),
+            getRandomWikipediaArticle()
+          ]);
+          setStartArticle(randomStart);
+          setTargetArticle(randomTarget);
+          await updateGame(gameCode, randomStart, randomTarget);
+        } catch (error) {
+          console.error("Failed to get random articles:", error);
+        }
+      }
+    };
+
+    initializeRandomArticles();
+  }, [isLeader, gameCode]);
+
   const handleStartGame = async () => {
     if (!startArticle || !targetArticle) {
       alert("Please set both start and target articles");
@@ -215,6 +237,43 @@ export default function Lobby() {
     }
   };
 
+  // Add these new handlers
+  const handleRandomizeStart = async () => {
+    if (!isLeader) return;
+    try {
+      const randomArticle = await getRandomWikipediaArticle();
+      setStartArticle(randomArticle);
+      await updateGame(gameCode, randomArticle, targetArticle);
+    } catch (error) {
+      console.error("Failed to get random start article:", error);
+    }
+  };
+
+  const handleRandomizeTarget = async () => {
+    if (!isLeader) return;
+    try {
+      const randomArticle = await getRandomWikipediaArticle();
+      setTargetArticle(randomArticle);
+      await updateGame(gameCode, startArticle, randomArticle);
+    } catch (error) {
+      console.error("Failed to get random target article:", error);
+    }
+  };
+
+  const handleStartInputFocus = () => {
+    if (isLeader) {
+      setStartArticle("");
+      setShowStartSuggestions(false);
+    }
+  };
+
+  const handleTargetInputFocus = () => {
+    if (isLeader) {
+      setTargetArticle("");
+      setShowTargetSuggestions(false);
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8">
@@ -235,16 +294,43 @@ export default function Lobby() {
                 <label htmlFor="start-article" className="block text-sm font-medium text-gray-700 mb-1">
                   Start Article
                 </label>
-                <input
-                  ref={startInputRef}
-                  id="start-article"
-                  type="text"
-                  value={startArticle}
-                  onChange={handleStartArticleChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Coffee"
-                  disabled={!isLeader}
-                />
+                <div className="flex gap-2">
+                  <input
+                    ref={startInputRef}
+                    id="start-article"
+                    type="text"
+                    value={startArticle}
+                    onChange={handleStartArticleChange}
+                    onFocus={handleStartInputFocus}
+                    className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., Coffee"
+                    disabled={!isLeader}
+                  />
+                  {isLeader && (
+                    <button
+                      onClick={handleRandomizeStart}
+                      className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center"
+                      title="Get random article"
+                    >
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="20" 
+                        height="20" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M8 16H3v5"/>
+                      </svg>
+                    </button>
+                  )}
+                </div>
                 {showStartSuggestions &&
                   startSuggestions.length > 0 &&
                   isLeader && (
@@ -267,16 +353,43 @@ export default function Lobby() {
                 <label htmlFor="target-article" className="block text-sm font-medium text-gray-700 mb-1">
                   Target Article
                 </label>
-                <input
-                  ref={targetInputRef}
-                  id="target-article"
-                  type="text"
-                  value={targetArticle}
-                  onChange={handleTargetArticleChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Moon"
-                  disabled={!isLeader}
-                />
+                <div className="flex gap-2">
+                  <input
+                    ref={targetInputRef}
+                    id="target-article"
+                    type="text"
+                    value={targetArticle}
+                    onChange={handleTargetArticleChange}
+                    onFocus={handleTargetInputFocus}
+                    className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., Moon"
+                    disabled={!isLeader}
+                  />
+                  {isLeader && (
+                    <button
+                      onClick={handleRandomizeTarget}
+                      className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center"
+                      title="Get random article"
+                    >
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="20" 
+                        height="20" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M8 16H3v5"/>
+                      </svg>
+                    </button>
+                  )}
+                </div>
                 {showTargetSuggestions &&
                   targetSuggestions.length > 0 &&
                   isLeader && (

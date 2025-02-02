@@ -104,28 +104,6 @@ export async function leaveGame(gameCode: string, playerId: string): Promise<voi
   }
 }
 
-export async function getHint(links: string[], target: string): Promise<HintResponse> {
-  const response = await fetch(`/api/game/hint`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      links,
-      target,
-    }),
-  });
-
-  if (!response.ok) {
-    console.error('Get hint failed:', await response.text());
-    throw new Error('Failed to get hint');
-  }
-
-  const data = await response.json();
-  return {
-    data: data.similarities
-  };
-}
 
 export async function addPath(gameCode: string, playerId: string, articleName: string): Promise<Game> {
   const response = await fetch(`${API_BASE_URL}/api/v1/games/addpath`, {

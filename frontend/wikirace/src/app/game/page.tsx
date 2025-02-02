@@ -162,14 +162,18 @@ export default function Game() {
     const hintedHrefs = new Set(
       hintedLinks.map((link) => normalizeWikiLink(link.href))
     );
-    const firstTenLinks = links
-      .filter(
-        (link) =>
-          !hintedHrefs.has(normalizeWikiLink(link.getAttribute("href") || ""))
+    const linksForHints = Array.from(
+      new Set(
+        links
+          .filter(
+            (link) =>
+              !hintedHrefs.has(normalizeWikiLink(link.getAttribute("href") || ""))
+          )
+          .map(link => link) // Create new array to avoid modifying original
       )
-      .slice(0, 5);
+    ).slice(6, 12); // Start from index 4 (5th element) and get up to 6 links
 
-    const linkTitles = firstTenLinks.map((link) =>
+    const linkTitles = linksForHints.map((link) =>
       normalizeWikiLink(link.getAttribute("href") || "")
     );
 
@@ -194,7 +198,7 @@ export default function Game() {
       const newHintedLinks: HintedLink[] = [];
 
       similarities.forEach(({ link, similarity }: any) => {
-        const matchingLink = firstTenLinks.find(
+        const matchingLink = linksForHints.find(
           (l) => normalizeWikiLink(l.getAttribute("href") || "") === link
         );
         if (matchingLink) {
@@ -293,7 +297,7 @@ export default function Game() {
               className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
               <span className="material-icons-outlined">lightbulb</span>
-              Get Hint
+              Get Hint from Embeddings
             </button>
             <button
               onClick={handleReset}
