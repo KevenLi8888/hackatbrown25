@@ -24,7 +24,7 @@ services:
       - "7681:8000"  # Host:Container
     volumes:
       - ./cfg-prod.yaml:/app/cfg.yaml
-    command: ["./wikirace", "--config", "/app/cfg.yaml"]
+    command: ["--config", "/app/cfg.yaml"]
 networks:
   wikirace-network:
     driver: bridge
