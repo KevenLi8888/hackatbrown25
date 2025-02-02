@@ -101,3 +101,17 @@ type UpdateGameResponse struct {
 func UpdateGame(app logic.Application, req UpdateGameRequest) (interface{}, error) {
 	return game.UpdateGame(req.GameCode, req.StartArticle, req.TargetArticle, app.GetMongoDB())
 }
+
+type LeaveGameRequest struct {
+	GameCode string `json:"gameCode"`
+	PlayerID string `json:"playerID"`
+}
+
+type LeaveGameResponse struct {
+	Game game.Game `json:"game"`
+}
+
+// LeaveGame implements /api/v1/games/leave
+func LeaveGame(app logic.Application, req LeaveGameRequest) (interface{}, error) {
+	return game.LeaveGame(req.GameCode, req.PlayerID, app.GetMongoDB())
+}

@@ -267,3 +267,42 @@ func UpdateGame(gameCode, startArticle, targetArticle string, db *mongo.Client) 
 	}
 	return &game, nil
 }
+
+// LeaveGame removes a player from a game
+func LeaveGame(gameCode, playerID string, db *mongo.Client) (*Game, error) {
+	// get the game from the database
+	collection := mongodb.GetCollection(db, "wikirace", "games")
+	filter := map[string]string{
+		"code": gameCode,
+	}
+	game := Game{}
+	err := collection.FindOne(nil, filter).Decode(&game)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			logger.Debugf("game not found: %v", gameCode)
+			return nil, stderror.New(stderror.ErrGameNotFound, errors.New("game not found, code: "+gameCode))
+		}
+		return nil, err
+	}
+
+	// remove the player from the game
+	playerFound := false
+	for i, p := range game.Players {
+		if p.ID == playerID {
+			game.Players = append(game.Players[:i], game.Players[i+1:]...)
+			playerFound = true
+			break
+		}
+	}
+	if !playerFound {
+		return nil, stderror.New(stderror.ErrPlayerNotFound, errors.New("player not found, id: "+playerID))
+	}
+	game.ExpiresAfter = time.Now().Add(expirationTime)
+
+	// update the game in the database
+	_, err = collection.ReplaceOne(nil, filter, game)
+	if err != nil {
+		return nil, err
+	}
+	return &game, nil
+}

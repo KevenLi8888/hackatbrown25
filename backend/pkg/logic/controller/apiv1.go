@@ -131,3 +131,18 @@ func (a *APIV1) UpdateGame(ctx *gin.Context) {
 	}
 	SendResponse(ctx, data, nil)
 }
+
+// LeaveGame implements /api/v1/games/leave
+func (a *APIV1) LeaveGame(ctx *gin.Context) {
+	var req apiv1.LeaveGameRequest
+	if err := ctx.Bind(&req); err != nil {
+		SendResponse(ctx, nil, stderror.New(stderror.ErrBind, err))
+		return
+	}
+	data, err := apiv1.LeaveGame(a.app, req)
+	if err != nil {
+		SendResponse(ctx, nil, err)
+		return
+	}
+	SendResponse(ctx, data, nil)
+}

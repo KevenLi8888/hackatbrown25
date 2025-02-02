@@ -22,6 +22,7 @@ func (s *Server) AddAPIHandlers() {
 		v1.POST("/games/start", s.apiV1Controller.StartGame)
 		v1.POST("/games/addpath", s.apiV1Controller.AddPath)
 		v1.POST("/games/reset", s.apiV1Controller.ResetGame)
+		v1.POST("/games/leave", s.apiV1Controller.LeaveGame)
 	}
 }
 
