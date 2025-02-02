@@ -2,6 +2,14 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchWikipediaArticle } from "@/utils/wikipedia";
+import {
+  createGame,
+  joinGame,
+  leaveGame,
+  startGame,
+  getGameInfo,
+} from "@/services/gameService";
+import { v4 as uuidv4 } from "uuid";
 
 interface Player {
   id: string;
@@ -16,10 +24,8 @@ export default function Lobby() {
   const [targetArticle, setTargetArticle] = useState("");
   const [startSuggestions, setStartSuggestions] = useState<any[]>([]);
   const [targetSuggestions, setTargetSuggestions] = useState<any[]>([]);
-  const [gameCode] = useState(
-    () =>
-      searchParams.get("code") ||
-      Math.random().toString(36).substring(2, 8).toUpperCase()
+  const [gameCode, setGameCode] = useState(
+    () => searchParams.get("code") || ""
   );
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLeader, setIsLeader] = useState(false);
@@ -32,60 +38,44 @@ export default function Lobby() {
       localStorage.getItem("playerId") ||
       Math.random().toString(36).substring(2, 8).toUpperCase()
   );
+  const [error, setError] = useState("");
 
   useEffect(() => {
     // Store the playerId for future use
     localStorage.setItem("playerId", playerId);
 
-    // Join or create game
-    const joinGame = async () => {
+    const initGame = async () => {
       try {
-        const res = await fetch("/api/game", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: gameCode,
-            player: {
-              id: playerId, // Use consistent playerId
-              name: playerName,
-            },
-          }),
-        });
-        if (!res.ok) {
-          alert("Failed to join game");
-          router.push("/");
-          return;
-        }
-        const game = await res.json();
+        const existingCode = searchParams.get("code");
+        if (!existingCode) return;
+
+        const game = await getGameInfo(gameCode);
+        setGameCode(game.code);
         setPlayers(game.players);
-        setIsLeader(
-          game.players.find((p: Player) => p.name === playerName)?.isLeader ||
-            false
-        );
+
+        // Check if current player is the leader
+        const isCurrentPlayerLeader =
+          game.players.find((p) => p.id === playerId)?.isLeader || false;
+        setIsLeader(isCurrentPlayerLeader);
+
+        // Only set articles if they exist
         if (game.startArticle) setStartArticle(game.startArticle);
         if (game.targetArticle) setTargetArticle(game.targetArticle);
       } catch (error) {
-        console.error("Failed to join game:", error);
+        console.error("Failed to initialize game:", error);
         router.push("/");
       }
     };
 
-    joinGame();
+    initGame();
 
     // Only run cleanup when actually leaving
     return () => {
       if (isLeaving) {
-        fetch("/api/game/leave", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: gameCode,
-            playerId: playerId, // Use consistent playerId
-          }),
-        });
+        leaveGame(gameCode, playerId);
       }
     };
-  }, [gameCode, playerName, router, isLeaving, playerId]);
+  }, [gameCode, playerName, router, isLeaving, playerId, searchParams]);
 
   // Search Wikipedia as user types
   useEffect(() => {
@@ -107,28 +97,24 @@ export default function Lobby() {
   }, [targetArticle]);
 
   useEffect(() => {
-    // Poll for updates
-    const interval = setInterval(async () => {
+    const pollGameInfo = async () => {
       try {
-        const res = await fetch(`/api/game?code=${gameCode}`);
-        if (!res.ok) {
-          // Game not found (probably closed by leader)
-          alert("Game has been closed by the leader");
-          router.push("/");
-          return;
-        }
-        const game = await res.json();
+        const game = await getGameInfo(gameCode);
         setPlayers(game.players);
-        if (game.status === "playing") {
+        if (game.state === "inProgress") {
           router.push(
             `/game?start=${game.startArticle}&target=${game.targetArticle}&code=${gameCode}`
           );
         }
       } catch (error) {
         console.error("Failed to get game updates:", error);
+        // Game not found (probably closed by leader)
+        alert("Game has been closed by the leader");
+        router.push("/");
       }
-    }, 1000);
+    };
 
+    const interval = setInterval(pollGameInfo, 1000);
     return () => clearInterval(interval);
   }, [gameCode, router]);
 
@@ -138,36 +124,69 @@ export default function Lobby() {
       return;
     }
 
-    await fetch("/api/game", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code: gameCode,
-        startArticle,
-        targetArticle,
-        status: "playing",
-      }),
-    });
+    try {
+      await startGame(gameCode, startArticle, targetArticle);
+    } catch (error) {
+      console.error("Failed to start game:", error);
+    }
   };
 
-  // Add a leave button to the UI
   const handleLeave = async () => {
     setIsLeaving(true);
     try {
-      await fetch("/api/game/leave", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: gameCode,
-          playerId: playerId, // Use consistent playerId
-        }),
-      });
+      await leaveGame(gameCode, playerId);
       router.push("/");
     } catch (error) {
       console.error("Failed to leave game:", error);
       setIsLeaving(false);
     }
   };
+
+  // const handleCreateGame = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   try {
+  //     const newPlayerId = uuidv4();
+  //     const game = await createGame(playerName, newPlayerId);
+
+  //     // Update localStorage
+  //     localStorage.setItem("playerId", newPlayerId);
+  //     localStorage.setItem("playerName", playerName);
+
+  //     // Update state directly
+  //     setGameCode(game.code);
+  //     setPlayers(game.players);
+  //     setIsLeader(true);
+
+  //     // Update URL without reload
+  //     window.history.replaceState({}, "", `/lobby?code=${game.code}`);
+  //   } catch (err) {
+  //     setError("Failed to create game");
+  //   }
+  // };
+
+  // const handleJoinGame = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   try {
+  //     const newPlayerId = uuidv4();
+  //     const game = await joinGame(playerName, newPlayerId, gameCode);
+
+  //     // Update localStorage
+  //     localStorage.setItem("playerId", newPlayerId);
+  //     localStorage.setItem("playerName", playerName);
+
+  //     // Update state directly
+  //     setGameCode(game.code);
+  //     setPlayers(game.players);
+  //     setIsLeader(
+  //       game.players.find((p) => p.id === newPlayerId)?.isLeader || false
+  //     );
+
+  //     // Update URL without reload
+  //     window.history.replaceState({}, "", `/lobby?code=${game.code}`);
+  //   } catch (err) {
+  //     setError("Failed to join game");
+  //   }
+  // };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
