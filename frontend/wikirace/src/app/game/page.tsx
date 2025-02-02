@@ -11,6 +11,19 @@ interface WikipediaContent {
   links: { "*": string }[];
 }
 
+interface HintedLink {
+  href: string;
+  color: string;
+  similarity: number;
+  title: string;
+}
+
+function normalizeWikiLink(url: string): string {
+  // Remove /wiki/ prefix and decode URI components
+  const link = url.split("/wiki/")[1] || "";
+  return decodeURIComponent(link).replace(/_/g, " ");
+}
+
 export default function Game() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,6 +41,7 @@ export default function Game() {
   const [loading, setLoading] = useState(true);
   const [game, setGame] = useState<Game | null>(null);
   const [error, setError] = useState("");
+  const [hintedLinks, setHintedLinks] = useState<HintedLink[]>([]);
 
   const articleContainerRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +109,20 @@ export default function Game() {
     };
   }, []);
 
+  // Add this style to the head of the document
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+      .hinted-link-red { color: red !important; font-weight: bold !important; }
+      .hinted-link-green { color: green !important; font-weight: bold !important; }
+      .hinted-link-orange { color: orange !important; font-weight: bold !important; }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const handleLinkClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (
@@ -122,32 +150,81 @@ export default function Game() {
     ) as HTMLAnchorElement[];
     if (links.length === 0) return;
 
-    const firstTenLinks = links.slice(0, 5);
+    // Only get hints for links that haven't been hinted yet
+    const hintedHrefs = new Set(
+      hintedLinks.map((link) => normalizeWikiLink(link.href))
+    );
+    const firstTenLinks = links
+      .filter(
+        (link) =>
+          !hintedHrefs.has(normalizeWikiLink(link.getAttribute("href") || ""))
+      )
+      .slice(0, 5);
+
     const linkTitles = firstTenLinks.map((link) =>
-      decodeURIComponent(link.getAttribute("href")!.split("/wiki/")[1])
+      normalizeWikiLink(link.getAttribute("href") || "")
     );
 
-    try {
-      const { similarities } = await getHint(linkTitles, targetArticle);
+    if (linkTitles.length === 0) return;
 
-      similarities.forEach(({ link, similarity }) => {
-        const matchingLink = firstTenLinks.find((l) =>
-          l.getAttribute("href")?.endsWith(encodeURIComponent(link))
+    try {
+      const response = await fetch("/game/hints", {
+        method: "POST",
+        body: JSON.stringify({
+          links: linkTitles,
+          target: targetArticle,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get hint from API");
+      }
+
+      const data = await response.json();
+      const { similarities } = data;
+
+      const newHintedLinks: HintedLink[] = [];
+
+      similarities.forEach(({ link, similarity }: any) => {
+        const matchingLink = firstTenLinks.find(
+          (l) => normalizeWikiLink(l.getAttribute("href") || "") === link
         );
         if (matchingLink) {
-          let color = "red";
-          if (similarity > 0.75) color = "green";
-          else if (similarity > 0.5) color = "orange";
+          let colorClass = "hinted-link-red";
+          if (similarity > 0.75) colorClass = "hinted-link-green";
+          else if (similarity > 0.5) colorClass = "hinted-link-orange";
 
-          matchingLink.style.color = color;
-          matchingLink.style.fontWeight = "bold";
+          newHintedLinks.push({
+            href: matchingLink.getAttribute("href") || "",
+            color: colorClass,
+            similarity,
+            title: normalizeWikiLink(matchingLink.getAttribute("href") || ""),
+          });
+
+          matchingLink.className = `${matchingLink.className} ${colorClass}`;
           matchingLink.title = `Similarity to target: ${similarity.toFixed(2)}`;
         }
       });
+
+      setHintedLinks(newHintedLinks);
     } catch (error) {
       console.error("Error retrieving hint:", error);
     }
   };
+
+  useEffect(() => {
+    if (!articleContainerRef.current || !content) return;
+
+    hintedLinks.forEach(({ href, color, similarity }) => {
+      const link = articleContainerRef.current?.querySelector(
+        `a[href="${href}"]`
+      ) as HTMLAnchorElement;
+      if (link) {
+        link.className = `${link.className} ${color}`;
+        link.title = `Similarity to target: ${similarity.toFixed(2)}`;
+      }
+    });
+  }, [content, hintedLinks]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
@@ -184,6 +261,14 @@ export default function Game() {
             >
               Hint
             </button>
+          </div>
+          <div className="flex flex-col gap-3">
+            {hintedLinks.map((link) => (
+              <div key={link.href} className="flex flex-col gap-1">
+                <span>{link.title}</span>
+                <span>Similarity: {link.similarity.toFixed(2)}</span>
+              </div>
+            ))}
           </div>
         </div>
 

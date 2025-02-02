@@ -2,6 +2,10 @@ import { Game } from '@/types/game';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+interface HintResponse {
+  data: Array<{ link: string; similarity: number }>;
+}
+
 export async function createGame(leaderName: string, playerId: string): Promise<Game> {
   const response = await fetch(`${API_BASE_URL}/api/v1/games/create`, {
     method: 'POST',
@@ -100,8 +104,8 @@ export async function leaveGame(gameCode: string, playerId: string): Promise<voi
   }
 }
 
-export async function getHint(links: string[], target: string): Promise<{ similarities: Array<{ link: string, similarity: number }> }> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/game/hint`, {
+export async function getHint(links: string[], target: string): Promise<HintResponse> {
+  const response = await fetch(`/api/game/hint`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -113,10 +117,14 @@ export async function getHint(links: string[], target: string): Promise<{ simila
   });
 
   if (!response.ok) {
+    console.error('Get hint failed:', await response.text());
     throw new Error('Failed to get hint');
   }
 
-  return response.json();
+  const data = await response.json();
+  return {
+    data: data.similarities
+  };
 }
 
 export async function addPath(gameCode: string, playerId: string, articleName: string): Promise<Game> {
