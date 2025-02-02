@@ -21,10 +21,12 @@ export async function getWikipediaArticle(title: string) {
     format: "json",
     page: title,
     prop: "text",
-    utf8: "1",
+    // mobileformat: "1",
+    // utf8: "1",
     redirects: "true",
     origin: "*",
-    mobileformat: "1"
+    disableeditsection: "1",
+    useskin: "minerva",
   });
 
   const response = await fetch(`${WIKIPEDIA_API_BASE}?${params}`);

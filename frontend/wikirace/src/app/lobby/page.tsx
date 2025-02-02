@@ -30,15 +30,9 @@ export default function Lobby() {
   );
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLeader, setIsLeader] = useState(false);
-  const [playerName] = useState(
-    () => localStorage.getItem("playerName") || "Anonymous"
-  );
+  const [playerName, setPlayerName] = useState("Anonymous");
   const [isLeaving, setIsLeaving] = useState(false);
-  const [playerId] = useState(
-    () =>
-      localStorage.getItem("playerId") ||
-      Math.random().toString(36).substring(2, 8).toUpperCase()
-  );
+  const [playerId, setPlayerId] = useState("");
   const [error, setError] = useState("");
   const [showStartSuggestions, setShowStartSuggestions] = useState(false);
   const [showTargetSuggestions, setShowTargetSuggestions] = useState(false);
@@ -47,7 +41,19 @@ export default function Lobby() {
   const startInputRef = useRef<HTMLInputElement>(null);
   const targetInputRef = useRef<HTMLInputElement>(null);
 
+  // Add this new useEffect to safely initialize localStorage-dependent values
   useEffect(() => {
+    setPlayerName(localStorage.getItem("playerName") || "Anonymous");
+    setPlayerId(
+      localStorage.getItem("playerId") ||
+      Math.random().toString(36).substring(2, 8).toUpperCase()
+    );
+  }, []);
+
+  useEffect(() => {
+    // Only proceed if playerId is set
+    if (!playerId) return;
+
     // Store the playerId for future use
     localStorage.setItem("playerId", playerId);
 

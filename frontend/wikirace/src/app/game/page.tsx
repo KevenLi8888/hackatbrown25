@@ -9,6 +9,7 @@ import {
   leaveGame,
 } from "@/services/gameService";
 import type { Game } from "@/types/game";
+import styles from './game.module.css';
 
 interface WikipediaContent {
   title: string;
@@ -93,7 +94,14 @@ export default function Game() {
 
       try {
         const gameData = await getGameInfo(gameCode);
-        setGame(gameData);
+        
+        // Only update if the state has changed
+        setGame(prevGame => {
+          if (JSON.stringify(prevGame) === JSON.stringify(gameData)) {
+            return prevGame;
+          }
+          return gameData;
+        });
 
         if (gameData.state === "finished") {
           router.push(`/stats?code=${gameCode}`);
@@ -106,34 +114,20 @@ export default function Game() {
     };
 
     fetchGameInfo();
-    const interval = setInterval(fetchGameInfo, 5000);
+    const interval = setInterval(fetchGameInfo, 1000);
     return () => clearInterval(interval);
   }, [gameCode, router]);
 
-  // Load Wikipedia's CSS once
+  // Update the Wikipedia CSS loading effect to include more style modules
   useEffect(() => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href =
-      "https://en.wikipedia.org/w/load.php?modules=mediawiki.legacy.commonPrint,shared|mediawiki.skinning.elements|mediawiki.skinning.content|mediawiki.skinning.interface|skins.vector.styles|site|mediawiki.skinning.content.parsoid|ext.cite.style|ext.kartographer.style&only=styles&skin=vector";
+      "https://en.wikipedia.org/w/load.php?modules=mediawiki.legacy.commonPrint,shared|mediawiki.skinning.elements|mediawiki.skinning.content|mediawiki.skinning.interface|skins.vector.styles|site|mediawiki.skinning.content.parsoid|ext.cite.style|ext.kartographer.style|mediawiki.page.gallery.styles|ext.visualEditor.desktopArticleTarget.noscript|ext.tmh.thumbnail.styles|ext.uls.interlanguage|ext.wikimediaBadges|ext.3d.styles&only=styles&skin=vector";
     document.head.appendChild(link);
 
     return () => {
       document.head.removeChild(link);
-    };
-  }, []);
-
-  // Add this style to the head of the document
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = `
-      .hinted-link-red { color: red !important; font-weight: bold !important; }
-      .hinted-link-green { color: green !important; font-weight: bold !important; }
-      .hinted-link-orange { color: orange !important; font-weight: bold !important; }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
     };
   }, []);
 
@@ -204,9 +198,9 @@ export default function Game() {
           (l) => normalizeWikiLink(l.getAttribute("href") || "") === link
         );
         if (matchingLink) {
-          let colorClass = "hinted-link-red";
-          if (similarity > 0.75) colorClass = "hinted-link-green";
-          else if (similarity > 0.5) colorClass = "hinted-link-orange";
+          let colorClass = styles.hintedLinkRed;
+          if (similarity > 0.75) colorClass = styles.hintedLinkGreen;
+          else if (similarity > 0.5) colorClass = styles.hintedLinkOrange;
 
           newHintedLinks.push({
             href: matchingLink.getAttribute("href") || "",
@@ -297,6 +291,9 @@ export default function Game() {
 
         {/* Wikipedia Article */}
         <div className="md:col-span-3 bg-white shadow p-4 rounded-lg">
+          {content && (
+            <h1 className="text-3xl font-bold mb-4">{content.title}</h1>
+          )}
           <div
             id="mw-content-text"
             ref={articleContainerRef}
