@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getWikipediaArticle } from "@/utils/wikipedia";
 
@@ -12,6 +12,10 @@ interface WikipediaContent {
 export default function Game() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const [playerName] = useState(
+    () => localStorage.getItem("playerName") || "Anonymous"
+  );
   const [currentArticle, setCurrentArticle] = useState(
     searchParams.get("start") || ""
   );
@@ -20,6 +24,8 @@ export default function Game() {
   const [clicks, setClicks] = useState(0);
   const [content, setContent] = useState<WikipediaContent | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const articleContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadArticle = async () => {
@@ -38,7 +44,20 @@ export default function Game() {
     }
   }, [currentArticle]);
 
-  const handleLinkClick = async (e: React.MouseEvent<HTMLDivElement>) => {
+  // Load Wikipedia's CSS once
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href =
+      "https://en.wikipedia.org/w/load.php?modules=mediawiki.legacy.commonPrint,shared|mediawiki.skinning.elements|mediawiki.skinning.content|mediawiki.skinning.interface|skins.vector.styles|site|mediawiki.skinning.content.parsoid|ext.cite.style|ext.kartographer.style&only=styles&skin=vector";
+    document.head.appendChild(link);
+
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (
       target.tagName === "A" &&
@@ -58,6 +77,56 @@ export default function Game() {
     }
   };
 
+  const handleHintClick = async () => {
+    if (!articleContainerRef.current) return;
+
+    const links = Array.from(
+      articleContainerRef.current.querySelectorAll("a[href^='/wiki/']")
+    ) as HTMLAnchorElement[];
+    if (links.length === 0) return;
+
+    const firstTenLinks = links.slice(0, 5);
+    const linkTitles = firstTenLinks.map((link) =>
+      decodeURIComponent(link.getAttribute("href")!.split("/wiki/")[1])
+    );
+
+    try {
+      const response = await fetch("/api/game/hint", {
+        method: "POST",
+        body: JSON.stringify({
+          links: linkTitles,
+          target: targetArticle,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get hint from API");
+      }
+
+      const data = await response.json();
+      const { similarities } = data;
+
+      similarities.forEach(({ link, similarity }: any) => {
+        const matchingLink = firstTenLinks.find((l) =>
+          l
+            .getAttribute("href")
+            ?.endsWith(encodeURIComponent(link))
+        );
+        if (matchingLink) {
+          let color = "red";
+          if (similarity > 0.75) color = "green";
+          else if (similarity > 0.5) color = "orange";
+
+          matchingLink.style.color = color;
+          matchingLink.style.fontWeight = "bold";
+          matchingLink.title = `Similarity to target: ${similarity.toFixed(2)}`;
+        }
+      });
+    } catch (error) {
+      console.error("Error retrieving hint:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -74,6 +143,9 @@ export default function Game() {
           <h2 className="text-xl font-bold mb-4">Game Info</h2>
           <div className="space-y-2">
             <p>
+              <span className="font-semibold">Player:</span> {playerName}
+            </p>
+            <p>
               <span className="font-semibold">Target:</span> {targetArticle}
             </p>
             <p>
@@ -83,13 +155,22 @@ export default function Game() {
               <span className="font-semibold">Current:</span> {currentArticle}
             </p>
           </div>
+          <div className="mt-4">
+            <button
+              onClick={handleHintClick}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              Hint
+            </button>
+          </div>
         </div>
 
         {/* Wikipedia Article */}
-        <div className="md:col-span-3 bg-white p-4 rounded-lg shadow">
-          <h1 className="text-2xl font-bold mb-4">{content?.title}</h1>
+        <div className="md:col-span-3 bg-white shadow p-4 rounded-lg">
           <div
-            className="prose max-w-none"
+            id="mw-content-text"
+            ref={articleContainerRef}
+            className="mw-body mw-body-content prose max-w-none"
             onClick={handleLinkClick}
             dangerouslySetInnerHTML={{ __html: content?.text["*"] || "" }}
           />

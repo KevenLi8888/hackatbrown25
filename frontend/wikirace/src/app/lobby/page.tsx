@@ -26,8 +26,17 @@ export default function Lobby() {
   const [playerName] = useState(
     () => localStorage.getItem("playerName") || "Anonymous"
   );
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [playerId] = useState(
+    () =>
+      localStorage.getItem("playerId") ||
+      Math.random().toString(36).substring(2, 8).toUpperCase()
+  );
 
   useEffect(() => {
+    // Store the playerId for future use
+    localStorage.setItem("playerId", playerId);
+
     // Join or create game
     const joinGame = async () => {
       try {
@@ -37,11 +46,16 @@ export default function Lobby() {
           body: JSON.stringify({
             code: gameCode,
             player: {
-              id: playerName, // Use playerName as ID to prevent duplicates
+              id: playerId, // Use consistent playerId
               name: playerName,
             },
           }),
         });
+        if (!res.ok) {
+          alert("Failed to join game");
+          router.push("/");
+          return;
+        }
         const game = await res.json();
         setPlayers(game.players);
         setIsLeader(
@@ -52,23 +66,26 @@ export default function Lobby() {
         if (game.targetArticle) setTargetArticle(game.targetArticle);
       } catch (error) {
         console.error("Failed to join game:", error);
+        router.push("/");
       }
     };
 
     joinGame();
 
-    // Cleanup function to handle leaving
+    // Only run cleanup when actually leaving
     return () => {
-      fetch("/api/game/leave", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: gameCode,
-          playerId: playerName,
-        }),
-      });
+      if (isLeaving) {
+        fetch("/api/game/leave", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: gameCode,
+            playerId: playerId, // Use consistent playerId
+          }),
+        });
+      }
     };
-  }, [gameCode, playerName]);
+  }, [gameCode, playerName, router, isLeaving, playerId]);
 
   // Search Wikipedia as user types
   useEffect(() => {
@@ -135,18 +152,20 @@ export default function Lobby() {
 
   // Add a leave button to the UI
   const handleLeave = async () => {
+    setIsLeaving(true);
     try {
       await fetch("/api/game/leave", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code: gameCode,
-          playerId: playerName,
+          playerId: playerId, // Use consistent playerId
         }),
       });
       router.push("/");
     } catch (error) {
       console.error("Failed to leave game:", error);
+      setIsLeaving(false);
     }
   };
 

@@ -40,6 +40,8 @@ export default function Home() {
                 if (!playerName.trim()) {
                   e.preventDefault();
                   alert("Please enter your name first");
+                } else {
+                  localStorage.setItem("playerName", playerName.trim());
                 }
               }}
             >
@@ -53,6 +55,8 @@ export default function Home() {
                 if (!playerName.trim()) {
                   e.preventDefault();
                   alert("Please enter your name first");
+                } else {
+                  localStorage.setItem("playerName", playerName.trim());
                 }
               }}
             >
