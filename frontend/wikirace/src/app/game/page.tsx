@@ -2,7 +2,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getWikipediaArticle } from "@/utils/wikipedia";
-import { getGameInfo, getHint, addPath } from "@/services/gameService";
+import {
+  getGameInfo,
+  resetGame,
+  addPath,
+  leaveGame,
+} from "@/services/gameService";
 import type { Game } from "@/types/game";
 
 interface WikipediaContent {
@@ -44,6 +49,15 @@ export default function Game() {
   const [hintedLinks, setHintedLinks] = useState<HintedLink[]>([]);
 
   const articleContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleReset = async () => {
+    try {
+      await resetGame(gameCode);
+    } catch (error) {
+      console.error("Failed to reset game:", error);
+      setError("Failed to reset game");
+    }
+  };
 
   useEffect(() => {
     const loadArticle = async () => {
@@ -226,6 +240,7 @@ export default function Game() {
     });
   }, [content, hintedLinks]);
 
+
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
@@ -260,6 +275,14 @@ export default function Game() {
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
             >
               Hint
+            </button>
+          </div>
+          <div className="mt-4">
+            <button
+              onClick={handleReset}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+            >
+              Give Up
             </button>
           </div>
           <div className="flex flex-col gap-3">

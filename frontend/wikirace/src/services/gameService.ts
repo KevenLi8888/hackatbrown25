@@ -88,7 +88,7 @@ export async function startGame(gameCode: string, startArticle: string, targetAr
 }
 
 export async function leaveGame(gameCode: string, playerId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/game/leave`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/games/leave`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

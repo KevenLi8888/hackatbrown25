@@ -108,7 +108,11 @@ export default function Lobby() {
     const pollGameInfo = async () => {
       try {
         const game = await getGameInfo(gameCode);
-        setPlayers(game.players);
+        try {
+          setPlayers(game.players);
+        } catch (error) {
+          router.push("/");
+        }
 
         // Only update articles if input is not focused and value is different
         if (
